@@ -1,36 +1,44 @@
 import stim
 
-# Example: Check if a circuit prepares the |0000⟩ + |1111⟩ state (4-qubit GHZ)
-# This state is stabilized by: XXXX, ZIZI, IZZI, IIZZ
+def check_stabilizers(circuit: str, stabilizers: list[str]) -> dict[str, bool]:
+    """Check if the given stabilizers are preserved by the circuit.
 
-# Circuit that should prepare this state
-circuit = stim.Circuit("""
-    H 0
-    CX 0 1
-    CX 1 2
-    CX 2 3
-""")
+    Args:
+        circuit: A string in the stim circuit format.
+        stabilizers: A list of strings representing the stabilizers (e.g., ['XXII', 'ZIZI']).
+            - Note that the stabilizers will be padded with 'I' to match the number of qubits in the circuit.
+    Returns:
+        A dictionary mapping each stabilizer to a boolean indicating if it is preserved.
+    """
+    circ = stim.Circuit(circuit)
+    sim = stim.TableauSimulator()
+    sim.do(circ)
 
-# Define your target stabilizers
-target_stabilizers = [
-    stim.PauliString("XXXX"),
-    stim.PauliString("ZIZI"),
-    stim.PauliString("IZZI"),
-    stim.PauliString("IIZZ"),
-]
+    results = {}
+    for stabilizer in stabilizers:
+        pauli = stim.PauliString(stabilizer + 'I' * (circ.num_qubits - len(stabilizer)))
+        expectation = sim.peek_observable_expectation(pauli)
+        results[stabilizer] = expectation > 0
+    return results
 
-# Method 3: Use stim's stabilizer flow checker
-print("=" * 60)
-print("Method 3: Check specific Pauli expectations")
-print("=" * 60)
+if __name__ == "__main__":
+    # Example: Check if a circuit prepares the |0000⟩ + |1111⟩ state (4-qubit GHZ)
+    # This state is stabilized by: XXXX, ZIZI, IZZI, IIZZ
 
-# Simulate the circuit
-sim = stim.TableauSimulator()
-sim.do(circuit)
+    # Circuit that should prepare this state
+    circuit = """
+        H 0
+        CX 0 1
+        CX 1 2
+        CX 2 3
+    """
 
-print("Checking if state is +1 eigenstate of target operators:")
-for i, pauli in enumerate(target_stabilizers):
-    expectation = sim.peek_observable_expectation(pauli)
-    eigenvalue = "+1" if expectation > 0 else "-1"
-    status = "✓" if expectation > 0 else "✗"
-    print(f"  {pauli}: eigenvalue = {eigenvalue} {status}")
+    # Define your target stabilizers
+    target_stabilizers = [
+        "XXXX",
+        "XIXI",
+        "IZZI",
+        "IIZZ",
+    ]
+
+    print(check_stabilizers(circuit, target_stabilizers))
