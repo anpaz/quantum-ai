@@ -146,6 +146,18 @@ def check_error_propagation(circuit: str, data_qubits: list[int], flag_qubits: l
                 })
     return results
 
+def check_fault_tolerance(circuit: str, data_qubits: list[int], flag_qubits: list[int]) -> tuple[list, bool]:
+    '''Check if the circuit is fault-tolerant against single-qubit Pauli faults.
+    A circuit is fault-tolerant if:
+        - Every single-qubit Pauli fault causes at most one data qubit error without flagging.
+        - Every single-qubit Pauli fault that causes more than one data qubit error causes at least one flag qubit to have an X error.
+    '''
+    results = check_error_propagation(circuit, data_qubits, flag_qubits)
+    for r in results:
+        if r["data_weight"] > 1 and r["flag_weight"] < 1:
+            return results, False
+    return results, True
+
 if __name__ == "__main__":
     data_qubits = [0, 1, 2, 3]
     flag_qubits = []

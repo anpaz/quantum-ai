@@ -9,13 +9,30 @@ This server exposes quantum circuit verification functions as MCP tools:
 import json
 from fastmcp import FastMCP
 
-from check_error_propagation import check_error_propagation
+from check_error_propagation import check_error_propagation, check_fault_tolerance
 from check_stabilizers import check_stabilizers
 
 
 # Create FastMCP server instance
 mcp = FastMCP("quantum-verification-server")
 
+@mcp.tool()
+def check_fault_tolerance_tool(
+    circuit: str,
+    data_qubits: list[int],
+    flag_qubits: list[int]
+) -> str:
+    """Check if a quantum circuit is fault-tolerant against single-qubit Pauli faults.
+    
+    A circuit is fault-tolerant if:
+        - Every single-qubit Pauli fault causes at most one data qubit error without flagging.
+        - Every single-qubit Pauli fault that causes more than one data qubit error causes at least one flag qubit to have an X error.
+    """
+    try:
+        results, is_fault_tolerant = check_fault_tolerance(circuit, data_qubits, flag_qubits)
+        return json.dumps({"results": results, "is_fault_tolerant": is_fault_tolerant})
+    except Exception as e:
+        return f"Error during fault tolerance check: {str(e)}"
 
 @mcp.tool()
 def check_error_propagation_tool(
